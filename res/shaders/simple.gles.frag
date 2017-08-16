@@ -3,8 +3,10 @@
 // TODO: investigate using different precisions.
 precision mediump float;
 
-out vec4 fragment_color;
+in vec3 fragmentColor;
+
+out vec4 color;
 
 void main() {
-	fragment_color = vec4(0.1, 0.4, 0.9, 1);
+	color = vec4(fragmentColor, 1);
 }

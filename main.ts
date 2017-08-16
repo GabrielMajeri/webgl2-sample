@@ -149,32 +149,88 @@ window.addEventListener("load", async () => {
 	program.use();
 
 	// TODO: class
-	const buffer = ctx.createBuffer();
-	ctx.bindBuffer(ctx.ARRAY_BUFFER, buffer);
+	const positionBuffer = ctx.createBuffer();
 
-	const positions = [
-		-0.5, -0.5,
-		0.5, -0.5,
-		-0.5, 0.5,
-		0.5, -0.5,
-		0.5, 0.5,
-		-0.5, 0.5,
-	];
+	ctx.bindBuffer(ctx.ARRAY_BUFFER, positionBuffer);
+	{
+		const vertexData = [
+			// Lower left
+			-0.5, -0.5,
+			// Lower right
+			0.5, -0.5,
+			// Upper left
+			-0.5, 0.5,
+			// Upper right
+			0.5, 0.5,
+		];
 
-	ctx.bufferData(ctx.ARRAY_BUFFER, new Float32Array(positions), ctx.STATIC_DRAW);
+		ctx.bufferData(ctx.ARRAY_BUFFER, new Float32Array(vertexData), ctx.STATIC_DRAW);
 
+	}
+	ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
+
+	const colorBuffer = ctx.createBuffer();
+
+	ctx.bindBuffer(ctx.ARRAY_BUFFER, colorBuffer);
+	{
+		const colorData = [
+			255, 0, 0,
+			0, 255, 0,
+			0, 0, 255,
+			255, 255, 0,
+		];
+
+		ctx.bufferData(ctx.ARRAY_BUFFER, new Uint8Array(colorData), ctx.STATIC_DRAW);
+	}
+	ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
+
+
+	const indexBuffer = ctx.createBuffer();
+
+	ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, indexBuffer);
+	{
+		const indices = [
+			0, 1, 2,
+			1, 3, 2
+		];
+
+		ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, new Uint8Array(indices), ctx.STATIC_DRAW);
+	}
+	ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, null);
+
+	// TODO: class
 	const vao = ctx.createVertexArray();
 
 	ctx.bindVertexArray(vao);
+	{
+		ctx.bindBuffer(ctx.ARRAY_BUFFER, positionBuffer);
+		{
+			ctx.enableVertexAttribArray(0);
+			const size = 2;
+			const type = ctx.FLOAT;
+			const stride = 0;
+			const offset = 0;
 
-	ctx.enableVertexAttribArray(0);
+			ctx.vertexAttribPointer(0, size, type, false, stride, offset);
+		}
+		ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
 
-	const size = 2;
-	const type = ctx.FLOAT;
-	const stride = 0;
-	const offset = 0;
+		ctx.bindBuffer(ctx.ARRAY_BUFFER, colorBuffer);
+		{
+			ctx.enableVertexAttribArray(1);
 
-	ctx.vertexAttribPointer(0, size, type, false, stride, offset);
+			const size = 3;
+			const type = ctx.UNSIGNED_BYTE;
+			const stride = 0;
+			const offset = 0;
+
+			ctx.vertexAttribPointer(1, size, type, true, stride, offset);
+		}
+		ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
+
+		ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, indexBuffer);
+	}
+
 
 	requestAnimationFrame(() => render(ctx));
 
@@ -185,7 +241,7 @@ function render(gl: Context) {
 	gl.clearColor(0, 0, 0, 1);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
-	gl.drawArrays(gl.TRIANGLES, 0, 6);
+	gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
 
 	requestAnimationFrame(() => render(gl));
 }
