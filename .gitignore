@@ -1,2 +1,5 @@
 # Ignore generated JS files.
 *.js
+
+# NPM modules.
+/node_modules
