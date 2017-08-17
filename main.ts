@@ -1,82 +1,4 @@
-type Context = WebGL2RenderingContext;
-
-abstract class WebGLResource {
-	protected readonly ctx: Context;
-
-	constructor(ctx: Context) {
-		this.ctx = ctx;
-	}
-
-	abstract destroy(): void;
-}
-
-class Shader extends WebGLResource {
-	readonly shader: WebGLShader;
-
-	constructor(ctx: Context, type: number, source: string) {
-		super(ctx);
-
-		const shader = ctx.createShader(type);
-
-		ctx.shaderSource(shader, source);
-
-		ctx.compileShader(shader);
-
-		const success = ctx.getShaderParameter(shader, ctx.COMPILE_STATUS);
-
-		if (!success) {
-			const log = ctx.getShaderInfoLog(shader);
-
-			ctx.deleteShader(shader);
-
-			throw Error(`Failed to compile WebGL shader:\n${log}`);
-		}
-
-		this.shader = shader;
-	}
-
-	destroy() {
-		this.ctx.deleteShader(this.shader);
-	}
-}
-
-class ShaderProgram extends WebGLResource {
-	readonly program: WebGLProgram;
-
-	constructor(ctx: Context) {
-		super(ctx);
-
-		this.program = ctx.createProgram();
-	}
-
-	attach(shader: Shader) {
-		this.ctx.attachShader(this.program, shader.shader);
-	}
-
-	link() {
-		const ctx = this.ctx;
-
-		ctx.linkProgram(this.program);
-
-		const success = ctx.getProgramParameter(this.program, ctx.LINK_STATUS);
-
-		if (!success) {
-			const log = ctx.getProgramInfoLog(this.program);
-
-			this.destroy();
-
-			throw new Error(`Failed to link shader program: ${log}`);
-		}
-	}
-
-	use() {
-		this.ctx.useProgram(this.program);
-	}
-
-	destroy() {
-		this.ctx.deleteProgram(this.program);
-	}
-}
+import { Context, Shader, createProgram, Buffer } from "./lib/WebGL.js";
 
 window.addEventListener("load", async () => {
 	const canvas = <HTMLCanvasElement> document.getElementById("canvas");
@@ -135,23 +57,14 @@ window.addEventListener("load", async () => {
 	const fragShaderSource = await loadTextAsync("res/shaders/simple.gles.frag");
 	const fragShader = new Shader(ctx, ctx.FRAGMENT_SHADER, fragShaderSource);
 
-
-	const program = new ShaderProgram(ctx);
-
-	program.attach(vertShader);
-	program.attach(fragShader);
-
-	program.link();
-
-	vertShader.destroy();
-	fragShader.destroy();
+	const program = createProgram(ctx, [vertShader, fragShader]);
 
 	program.use();
 
 	// TODO: class
-	const positionBuffer = ctx.createBuffer();
+	const positionBuffer = new Buffer(ctx);
 
-	ctx.bindBuffer(ctx.ARRAY_BUFFER, positionBuffer);
+	positionBuffer.bind(ctx.ARRAY_BUFFER);
 	{
 		const vertexData = [
 			// Lower left
@@ -165,13 +78,11 @@ window.addEventListener("load", async () => {
 		];
 
 		ctx.bufferData(ctx.ARRAY_BUFFER, new Float32Array(vertexData), ctx.STATIC_DRAW);
-
 	}
-	ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
 
-	const colorBuffer = ctx.createBuffer();
+	const colorBuffer = new Buffer(ctx);
 
-	ctx.bindBuffer(ctx.ARRAY_BUFFER, colorBuffer);
+	colorBuffer.bind(ctx.ARRAY_BUFFER);
 	{
 		const colorData = [
 			255, 0, 0,
@@ -182,12 +93,10 @@ window.addEventListener("load", async () => {
 
 		ctx.bufferData(ctx.ARRAY_BUFFER, new Uint8Array(colorData), ctx.STATIC_DRAW);
 	}
-	ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
 
+	const indexBuffer = new Buffer(ctx);
 
-	const indexBuffer = ctx.createBuffer();
-
-	ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, indexBuffer);
+	indexBuffer.bind(ctx.ELEMENT_ARRAY_BUFFER);
 	{
 		const indices = [
 			0, 1, 2,
@@ -196,14 +105,14 @@ window.addEventListener("load", async () => {
 
 		ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, new Uint8Array(indices), ctx.STATIC_DRAW);
 	}
-	ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, null);
 
 	// TODO: class
 	const vao = ctx.createVertexArray();
 
 	ctx.bindVertexArray(vao);
 	{
-		ctx.bindBuffer(ctx.ARRAY_BUFFER, positionBuffer);
+		indexBuffer.bind(ctx.ELEMENT_ARRAY_BUFFER);
+
 		{
 			ctx.enableVertexAttribArray(0);
 			const size = 2;
@@ -211,11 +120,10 @@ window.addEventListener("load", async () => {
 			const stride = 0;
 			const offset = 0;
 
+			positionBuffer.bind(ctx.ARRAY_BUFFER);
 			ctx.vertexAttribPointer(0, size, type, false, stride, offset);
 		}
-		ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
 
-		ctx.bindBuffer(ctx.ARRAY_BUFFER, colorBuffer);
 		{
 			ctx.enableVertexAttribArray(1);
 
@@ -224,17 +132,15 @@ window.addEventListener("load", async () => {
 			const stride = 0;
 			const offset = 0;
 
+			colorBuffer.bind(ctx.ARRAY_BUFFER);
 			ctx.vertexAttribPointer(1, size, type, true, stride, offset);
 		}
-		ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
-
-		ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, indexBuffer);
 	}
 
 
 	requestAnimationFrame(() => render(ctx));
 
-	program.destroy();
+	program.dispose();
 });
 
 function render(gl: Context) {
