@@ -69,29 +69,19 @@ window.addEventListener("load", async () => {
 		const vertexData = [
 			// Lower left
 			-0.5, -0.5,
+			0, 0,
 			// Lower right
 			0.5, -0.5,
+			1, 0,
 			// Upper left
 			-0.5, 0.5,
+			0, 1,
 			// Upper right
 			0.5, 0.5,
+			1, 1,
 		];
 
 		ctx.bufferData(ctx.ARRAY_BUFFER, new Float32Array(vertexData), ctx.STATIC_DRAW);
-	}
-
-	const colorBuffer = new Buffer(ctx);
-
-	colorBuffer.bind(ctx.ARRAY_BUFFER);
-	{
-		const colorData = [
-			255, 0, 0,
-			0, 255, 0,
-			0, 0, 255,
-			255, 255, 0,
-		];
-
-		ctx.bufferData(ctx.ARRAY_BUFFER, new Uint8Array(colorData), ctx.STATIC_DRAW);
 	}
 
 	const indexBuffer = new Buffer(ctx);
@@ -106,6 +96,29 @@ window.addEventListener("load", async () => {
 		ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, new Uint8Array(indices), ctx.STATIC_DRAW);
 	}
 
+	// Texture
+	ctx.activeTexture(ctx.TEXTURE0);
+
+	const wallColorMapData = await new Promise<HTMLImageElement>((resolve) => {
+		const wallImage = new Image(256, 256);
+		wallImage.src = "res/textures/wall.png";
+
+		wallImage.onload = () => {
+			resolve(wallImage);
+		};
+	});
+
+	const wallColorMapTexture = ctx.createTexture();
+
+	ctx.bindTexture(ctx.TEXTURE_2D, wallColorMapTexture);
+
+	ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE);
+	ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE);
+	ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.NEAREST);
+	ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.NEAREST);
+
+	ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, wallColorMapData);
+
 	// TODO: class
 	const vao = ctx.createVertexArray();
 
@@ -117,7 +130,7 @@ window.addEventListener("load", async () => {
 			ctx.enableVertexAttribArray(0);
 			const size = 2;
 			const type = ctx.FLOAT;
-			const stride = 0;
+			const stride = 16;
 			const offset = 0;
 
 			positionBuffer.bind(ctx.ARRAY_BUFFER);
@@ -127,16 +140,14 @@ window.addEventListener("load", async () => {
 		{
 			ctx.enableVertexAttribArray(1);
 
-			const size = 3;
-			const type = ctx.UNSIGNED_BYTE;
-			const stride = 0;
-			const offset = 0;
+			const size = 2;
+			const type = ctx.FLOAT;
+			const stride = 16;
+			const offset = 8;
 
-			colorBuffer.bind(ctx.ARRAY_BUFFER);
-			ctx.vertexAttribPointer(1, size, type, true, stride, offset);
+			ctx.vertexAttribPointer(1, size, type, false, stride, offset);
 		}
 	}
-
 
 	requestAnimationFrame(() => render(ctx));
 

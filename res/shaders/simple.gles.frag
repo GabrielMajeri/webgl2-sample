@@ -3,10 +3,12 @@
 // TODO: investigate using different precisions.
 precision mediump float;
 
-in vec3 fragmentColor;
+in vec2 texCoords;
+
+uniform sampler2D colorMap;
 
 out vec4 color;
 
 void main() {
-	color = vec4(fragmentColor, 1);
+	color = texture(colorMap, texCoords);
 }
